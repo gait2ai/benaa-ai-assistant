@@ -1,0 +1,6 @@
+{
+    "model_name": "paraphrase-multilingual-MiniLM-L12-v2",
+    "vector_dimension": 384,
+    "language_support": ["ar", "en"],
+    "created_at": "2024-06-20"
+}
