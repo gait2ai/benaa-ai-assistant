@@ -366,6 +366,10 @@ async def startup_event():
 # Mount static files AFTER defining API endpoints to prevent route overriding
 app.mount("/", StaticFiles(directory=STATIC_FOLDER, html=True), name="static")
 
+@app.get("/", response_class=FileResponse)
+async def read_index():
+    index_path = os.path.join("static", "index.html")
+    return index_path
 
 if __name__ == "__main__":
     import uvicorn
