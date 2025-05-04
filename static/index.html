@@ -1,1 +1,38 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <link rel="icon" href="favicon.ico" />
+    <title>مساعد جمعية بناء</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <img src="logo.png" alt="شعار جمعية بناء" class="logo">
+            <h1 class="chat-title">مساعد جمعية بناء</h1>
+        </div>
 
+        <div class="quick-questions">
+            <button class="quick-btn">أريد بعض المعلومات حول الجمعية</button>
+            <button class="quick-btn">كيف أتقدم بشكوى</button>
+            <button class="quick-btn">ما هي المشاريع التي تقوم بها الجمعية</button>
+        </div>
+
+        <div class="chat-messages" id="chatMessages"></div>
+
+        <div class="chat-input">
+            <input type="text" id="messageInput" placeholder="اكتب رسالتك هنا..." autocomplete="off" />
+            <button class="send-button" id="sendButton">
+                <svg class="send-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white">
+                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
