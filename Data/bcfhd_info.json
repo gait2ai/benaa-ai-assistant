@@ -1,1 +1,126 @@
-
+{
+  "organization": {
+    "name": "Bena Charity for Human Development",
+    "acronym": "BCFHD",
+    "founding_year": 1996,
+    "headquarters": "Taiz, Yemen",
+    "type": "non-profit, non-governmental organization",
+    "leadership": {
+      "president": "Abdulkareem Abdullah Ahmed Shamsan",
+      "program_manager": "Riyadh Mohammed Shamsan"
+    },
+    "values": [
+      "transparency",
+      "independence",
+      "neutrality",
+      "commitment to providing quality services to vulnerable communities"
+    ],
+    "sectors": [
+      "WASH",
+      "Food Security",
+      "Education",
+      "Health",
+      "Shelter",
+      "Protection",
+      "Empowerment"
+    ],
+    "main_sectors": {
+      "Education": true,
+      "Protection": ["General", "Child"],
+      "Livelihoods and Food Security": true,
+      "Al-Wash": true,
+      "Shelter": true,
+      "Camp Management": true,
+      "Health": true
+    },
+    "cluster_membership": {
+      "Education": "coordinator for the Southern Taiz and West Coast Axis",
+      "Al-Wash": "member of the SAG",
+      "Protection": "member",
+      "Shelter": "member",
+      "Camp Management": "coordinator for the three city directorates",
+      "Food Security": "member",
+      "Health": "observer member"
+    },
+    "projects": [
+      {
+        "name": "Emergency WASH services for floods-affected IDPs",
+        "location": "Taiz and Marib",
+        "funding": "IRC",
+        "beneficiaries": "over 4,000 displacement-affected individuals"
+      },
+      {
+        "name": "Emergency Education assistance",
+        "beneficiaries": "over 11,000 vulnerable children",
+        "location": "conflict-impacted districts of Taiz",
+        "funding": "UN OCHA's YHF",
+        "activities": [
+          "improving learning environments",
+          "providing school supplies",
+          "facilitating access to education"
+        ]
+      },
+      {
+        "name": "Food security and livelihoods aid",
+        "beneficiaries": "over 25,000 households",
+        "location": "Taiz, Aden, Marib and Hadhramaut",
+        "funding": ["FAO", "KS Relief", "YHF"],
+        "activities": [
+          "emergency food supplies",
+          "agricultural livelihoods kits"
+        ]
+      },
+      {
+        "name": "Shelter support",
+        "beneficiaries": "3,100 displaced households",
+        "location": "Taiz",
+        "funding": ["YHF", "UNHCR"],
+        "activities": [
+          "emergency kits",
+          "rental subsidies",
+          "sustainable shelter solutions"
+        ]
+      },
+      {
+        "name": "Healthcare assistance",
+        "beneficiaries": "over 100,000 vulnerable individuals",
+        "location": "Taiz",
+        "funding": ["IRC", "ECHO"],
+        "focus": "response to disease outbreaks (Cholera, COVID-19, Dengue)"
+      },
+      {
+        "name": "Women empowerment initiatives",
+        "activities": "provision of vocational training in handicrafts",
+        "funding": "King Salman Humanitarian Center"
+      },
+      {
+        "name": "Rehabilitation of conflict-damaged houses and WASH infrastructure",
+        "location": "villages of Taiz",
+        "funding": ["CARE International", "UN Habitat"]
+      }
+    ],
+    "partnerships": [
+      "UN agencies",
+      "international organizations",
+      "local partners"
+    ],
+    "association_memberships": [
+      "Arab Network for Non-Governmental Organizations (ANNGOs)",
+      "Local Network for Non-Governmental Organizations (NGOs)",
+      "Food Security Cluster",
+      "Water, Sanitation, and Hygiene Cluster",
+      "Shelter Cluster",
+      "Camp Coordination and Camp Management Cluster",
+      "Protection Cluster",
+      "Education Cluster",
+      "Inter-Agency Network for Education in Emergencies (INEE)",
+      "Dyslexia Organization",
+      "G8 NGOs",
+      "Islamic Union for Non-Governmental Organizations",
+      "Humanitarian Relief Coalition",
+      "International Transparency Network",
+      "National Assembly (SAG) for the Wasit Region"
+    ],
+    "description": "With over 25 years of experience, a strong community network, and expertise across key humanitarian sectors, BCFHD is well-positioned to continue providing impactful aid to vulnerable populations in Yemen."
+  }
+}
