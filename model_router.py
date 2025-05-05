@@ -1,330 +1,632 @@
-# model_router.py
+"""
+model_router.py - Router module for handling AI model generation requests
+
+This module provides a FastAPI router that handles requests to generate text using
+various AI model providers (OpenAI, Anthropic, DeepSeek, Google Gemini).
+It dynamically selects the appropriate provider based on the request parameters.
+"""
 
 import os
-import logging
-from typing import Dict, Any, Optional, Union, List
-from abc import ABC, abstractmethod
 import json
+import logging
+import asyncio
+from typing import Dict, Any, Optional, List, Union, Literal
+from enum import Enum
+import time
+import traceback
 
-# Import provider libraries
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, Request, Query
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field, validator
+import openai
+from openai import AsyncOpenAI
+import anthropic
+import google.generativeai as genai
+from dotenv import load_dotenv
 import httpx
-try:
-    import openai
-except ImportError:
-    openai = None
-
-try:
-    import anthropic
-except ImportError:
-    anthropic = None
-
-try:
-    import google.generativeai as genai
-except ImportError:
-    genai = None
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler("model_router.log"),
+        logging.StreamHandler()
+    ]
+)
 logger = logging.getLogger(__name__)
 
+# Load environment variables
+load_dotenv()
 
-class ModelProviderBase(ABC):
-    """Base abstract class for all model providers."""
+# Create router
+router = APIRouter(prefix="/api", tags=["models"])
+
+# Define provider enum for validation
+class ModelProvider(str, Enum):
+    OPENAI = "openai"
+    ANTHROPIC = "anthropic"
+    DEEPSEEK = "deepseek"
+    GEMINI = "gemini"
+    AUTO = "auto"  # Automatically selects available provider
+
+# Model request schema
+class ModelRequest(BaseModel):
+    prompt: str
+    provider: ModelProvider = ModelProvider.AUTO
+    model_name: Optional[str] = None
+    system_prompt: Optional[str] = None
+    temperature: Optional[float] = 0.7
+    max_tokens: Optional[int] = 1000
     
-    def __init__(self, model_name: str, api_key: str, temperature: float = 0.7):
-        """
-        Initialize the model provider with common parameters.
-        
-        Args:
-            model_name: The specific model to use
-            api_key: API key for authentication
-            temperature: Controls randomness in responses (0.0 to 1.0)
-        """
-        self.model_name = model_name
-        self.api_key = api_key
-        self.temperature = temperature
+    @validator('temperature')
+    def validate_temperature(cls, v):
+        if v is not None and (v < 0 or v > 1):
+            raise ValueError("Temperature must be between 0 and 1")
+        return v
     
-    @abstractmethod
-    async def generate(self, prompt: str, system_prompt: Optional[str] = None, 
-                     max_tokens: int = 1000) -> str:
-        """
-        Generate text based on the prompt.
-        
-        Args:
-            prompt: The user's input text
-            system_prompt: Optional system instructions
-            max_tokens: Maximum tokens in the response
-            
-        Returns:
-            The generated text response
-        """
-        pass
+    @validator('max_tokens')
+    def validate_max_tokens(cls, v):
+        if v is not None and (v < 1 or v > 4096):
+            raise ValueError("max_tokens must be between 1 and 4096")
+        return v
+
+# Model response schema
+class ModelResponse(BaseModel):
+    text: str
+    provider: str
+    model: str
+    tokens_used: Optional[int] = None
+    processing_time: Optional[float] = None
+
+# Abstract base provider class
+class ModelProviderBase:
+    """Base class for all model providers."""
+    
+    def __init__(self):
+        self.api_key = None
+        self.client = None
+        self.available_models = []
+        self.default_model = None
+    
+    async def initialize(self):
+        """Initialize the provider client."""
+        raise NotImplementedError("Subclasses must implement initialize()")
+    
+    async def generate(self, 
+                      prompt: str, 
+                      model: Optional[str] = None, 
+                      system_prompt: Optional[str] = None,
+                      temperature: float = 0.7, 
+                      max_tokens: int = 1000) -> Dict[str, Any]:
+        """Generate text using the provider's model."""
+        raise NotImplementedError("Subclasses must implement generate()")
+    
+    def is_available(self) -> bool:
+        """Check if this provider is available (has API key)."""
+        return bool(self.api_key) and self.api_key != ""
 
 
+# OpenAI provider implementation
 class OpenAIProvider(ModelProviderBase):
-    """Provider for OpenAI models (GPT-3.5, GPT-4, etc.)"""
+    """Provider class for OpenAI models."""
     
-    async def generate(self, prompt: str, system_prompt: Optional[str] = None, 
-                     max_tokens: int = 1000) -> str:
-        """Generate text using OpenAI's API."""
+    def __init__(self):
+        super().__init__()
+        self.api_key = os.getenv("OPENAI_API_KEY")
+        self.available_models = ["gpt-3.5-turbo", "gpt-4", "gpt-4-turbo", "gpt-4o"]
+        self.default_model = "gpt-3.5-turbo"
+    
+    async def initialize(self):
+        """Initialize the OpenAI client."""
+        if not self.is_available():
+            raise ValueError("OpenAI API key not found")
+        
+        self.client = AsyncOpenAI(api_key=self.api_key)
+    
+    async def generate(self, 
+                      prompt: str, 
+                      model: Optional[str] = None, 
+                      system_prompt: Optional[str] = None,
+                      temperature: float = 0.7, 
+                      max_tokens: int = 1000) -> Dict[str, Any]:
+        """Generate text using OpenAI models."""
+        if not self.client:
+            await self.initialize()
+        
+        # Use default model if none specified
+        model_name = model if model else self.default_model
+        
+        # Prepare messages
+        messages = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        messages.append({"role": "user", "content": prompt})
+        
         try:
-            if openai is None:
-                raise ImportError("openai package is not installed")
+            start_time = time.time()
+            response = await self.client.chat.completions.create(
+                model=model_name,
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens
+            )
+            processing_time = time.time() - start_time
             
-            client = openai.AsyncOpenAI(api_key=self.api_key)
+            # Extract text from response
+            text = response.choices[0].message.content
             
+            # Get token usage
+            tokens_used = response.usage.total_tokens if hasattr(response, 'usage') else None
+            
+            return {
+                "text": text,
+                "provider": "openai",
+                "model": model_name,
+                "tokens_used": tokens_used,
+                "processing_time": processing_time
+            }
+            
+        except Exception as e:
+            logger.error(f"OpenAI generation error: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"OpenAI generation failed: {str(e)}")
+
+
+# Anthropic provider implementation
+class AnthropicProvider(ModelProviderBase):
+    """Provider class for Anthropic Claude models."""
+    
+    def __init__(self):
+        super().__init__()
+        self.api_key = os.getenv("ANTHROPIC_API_KEY")
+        self.available_models = ["claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240307"]
+        self.default_model = "claude-3-haiku-20240307"
+    
+    async def initialize(self):
+        """Initialize the Anthropic client."""
+        if not self.is_available():
+            raise ValueError("Anthropic API key not found")
+        
+        self.client = anthropic.AsyncAnthropic(api_key=self.api_key)
+    
+    async def generate(self, 
+                      prompt: str, 
+                      model: Optional[str] = None, 
+                      system_prompt: Optional[str] = None,
+                      temperature: float = 0.7, 
+                      max_tokens: int = 1000) -> Dict[str, Any]:
+        """Generate text using Anthropic Claude models."""
+        if not self.client:
+            await self.initialize()
+        
+        # Use default model if none specified
+        model_name = model if model else self.default_model
+        
+        try:
+            start_time = time.time()
+            
+            # Create the message
+            kwargs = {
+                "model": model_name,
+                "max_tokens": max_tokens,
+                "temperature": temperature,
+                "messages": [{"role": "user", "content": prompt}]
+            }
+            
+            # Add system prompt if provided
+            if system_prompt:
+                kwargs["system"] = system_prompt
+            
+            response = await self.client.messages.create(**kwargs)
+            processing_time = time.time() - start_time
+            
+            # Extract text from response
+            text = response.content[0].text
+            
+            return {
+                "text": text,
+                "provider": "anthropic",
+                "model": model_name,
+                "tokens_used": None,  # Anthropic doesn't provide token count in the same way
+                "processing_time": processing_time
+            }
+            
+        except Exception as e:
+            logger.error(f"Anthropic generation error: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Anthropic generation failed: {str(e)}")
+
+
+# DeepSeek provider implementation
+class DeepSeekProvider(ModelProviderBase):
+    """Provider class for DeepSeek models."""
+    
+    def __init__(self):
+        super().__init__()
+        self.api_key = os.getenv("DEEPSEEK_API_KEY")
+        self.api_base = os.getenv("DEEPSEEK_API_BASE", "https://api.deepseek.com")
+        self.available_models = ["deepseek-chat", "deepseek-coder"]
+        self.default_model = "deepseek-chat"
+    
+    async def initialize(self):
+        """Initialize the DeepSeek client."""
+        if not self.is_available():
+            raise ValueError("DeepSeek API key not found")
+        
+        # Using httpx for async API calls since DeepSeek may not have an official async client
+        self.client = httpx.AsyncClient(timeout=60.0)
+    
+    async def generate(self, 
+                      prompt: str, 
+                      model: Optional[str] = None, 
+                      system_prompt: Optional[str] = None,
+                      temperature: float = 0.7, 
+                      max_tokens: int = 1000) -> Dict[str, Any]:
+        """Generate text using DeepSeek models."""
+        if not self.client:
+            await self.initialize()
+        
+        # Use default model if none specified
+        model_name = model if model else self.default_model
+        
+        try:
+            start_time = time.time()
+            
+            # Prepare messages
             messages = []
             if system_prompt:
                 messages.append({"role": "system", "content": system_prompt})
-            
             messages.append({"role": "user", "content": prompt})
             
-            response = await client.chat.completions.create(
-                model=self.model_name,
-                messages=messages,
-                temperature=self.temperature,
-                max_tokens=max_tokens
+            # Prepare request payload
+            payload = {
+                "model": model_name,
+                "messages": messages,
+                "temperature": temperature,
+                "max_tokens": max_tokens
+            }
+            
+            # Make API request
+            headers = {
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {self.api_key}"
+            }
+            
+            response = await self.client.post(
+                f"{self.api_base}/v1/chat/completions", 
+                headers=headers,
+                json=payload
             )
             
-            return response.choices[0].message.content
+            if response.status_code != 200:
+                error_detail = response.text
+                logger.error(f"DeepSeek API error: {error_detail}")
+                raise HTTPException(status_code=response.status_code, 
+                                   detail=f"DeepSeek API error: {error_detail}")
             
+            result = response.json()
+            processing_time = time.time() - start_time
+            
+            # Extract text from response
+            text = result["choices"][0]["message"]["content"]
+            
+            # Get token usage if available
+            tokens_used = result.get("usage", {}).get("total_tokens")
+            
+            return {
+                "text": text,
+                "provider": "deepseek",
+                "model": model_name,
+                "tokens_used": tokens_used,
+                "processing_time": processing_time
+            }
+            
+        except HTTPException:
+            raise
         except Exception as e:
-            logger.error(f"OpenAI generation error: {e}")
-            return f"Error generating response from OpenAI: {str(e)}"
+            logger.error(f"DeepSeek generation error: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"DeepSeek generation failed: {str(e)}")
 
 
-class AnthropicProvider(ModelProviderBase):
-    """Provider for Anthropic models (Claude)"""
-    
-    async def generate(self, prompt: str, system_prompt: Optional[str] = None, 
-                     max_tokens: int = 1000) -> str:
-        """Generate text using Anthropic's API."""
-        try:
-            if anthropic is None:
-                raise ImportError("anthropic package is not installed")
-            
-            client = anthropic.AsyncAnthropic(api_key=self.api_key)
-            
-            # Build the message based on whether we have a system prompt
-            if system_prompt:
-                response = await client.messages.create(
-                    model=self.model_name,
-                    system=system_prompt,
-                    messages=[{"role": "user", "content": prompt}],
-                    temperature=self.temperature,
-                    max_tokens=max_tokens
-                )
-            else:
-                response = await client.messages.create(
-                    model=self.model_name,
-                    messages=[{"role": "user", "content": prompt}],
-                    temperature=self.temperature,
-                    max_tokens=max_tokens
-                )
-            
-            return response.content[0].text
-            
-        except Exception as e:
-            logger.error(f"Anthropic generation error: {e}")
-            return f"Error generating response from Anthropic: {str(e)}"
-
-
-class DeepSeekProvider(ModelProviderBase):
-    """Provider for DeepSeek models via OpenAI-compatible endpoint"""
-    
-    async def generate(self, prompt: str, system_prompt: Optional[str] = None, 
-                     max_tokens: int = 1000) -> str:
-        """Generate text using DeepSeek's API."""
-        try:
-            # DeepSeek provides an OpenAI-compatible API endpoint
-            async with httpx.AsyncClient(timeout=60.0) as client:
-                # Default to DeepSeek's API endpoint
-                api_base = os.getenv("DEEPSEEK_API_BASE", "https://api.deepseek.com/v1")
-                
-                messages = []
-                if system_prompt:
-                    messages.append({"role": "system", "content": system_prompt})
-                
-                messages.append({"role": "user", "content": prompt})
-                
-                response = await client.post(
-                    f"{api_base}/chat/completions",
-                    headers={
-                        "Content-Type": "application/json",
-                        "Authorization": f"Bearer {self.api_key}"
-                    },
-                    json={
-                        "model": self.model_name,
-                        "messages": messages,
-                        "temperature": self.temperature,
-                        "max_tokens": max_tokens
-                    }
-                )
-                
-                if response.status_code != 200:
-                    logger.error(f"DeepSeek API error: {response.status_code} - {response.text}")
-                    return f"Error from DeepSeek API: {response.text}"
-                
-                data = response.json()
-                return data.get("choices", [{}])[0].get("message", {}).get("content", "")
-                
-        except Exception as e:
-            logger.error(f"DeepSeek generation error: {e}")
-            return f"Error generating response from DeepSeek: {str(e)}"
-
-
+# Google Gemini provider implementation
 class GeminiProvider(ModelProviderBase):
-    """Provider for Google's Gemini models"""
-    
-    async def generate(self, prompt: str, system_prompt: Optional[str] = None, 
-                     max_tokens: int = 1000) -> str:
-        """Generate text using Google's Gemini API."""
-        try:
-            if genai is None:
-                raise ImportError("google-generativeai package is not installed")
-            
-            # Configure the Generative AI SDK
-            genai.configure(api_key=self.api_key)
-            
-            # Get model
-            model = genai.GenerativeModel(
-                model_name=self.model_name,
-                generation_config=genai.GenerationConfig(
-                    temperature=self.temperature,
-                    max_output_tokens=max_tokens
-                )
-            )
-            
-            # Build content based on whether we have a system prompt
-            if system_prompt:
-                chat = model.start_chat(history=[])
-                response = await chat.send_message_async(
-                    f"System: {system_prompt}\n\nUser: {prompt}"
-                )
-            else:
-                response = await model.generate_content_async(prompt)
-            
-            return response.text
-            
-        except Exception as e:
-            logger.error(f"Gemini generation error: {e}")
-            return f"Error generating response from Gemini: {str(e)}"
-
-
-class ModelRouter:
-    """
-    Router that selects and uses the appropriate model provider based on environment variables.
-    """
+    """Provider class for Google Gemini models."""
     
     def __init__(self):
-        """Initialize the router and set up providers based on environment variables."""
-        # Read configuration from environment variables
-        self.provider_name = os.getenv("PROVIDER", "openai").lower()
-        self.model_name = os.getenv("MODEL_NAME", "gpt-3.5-turbo")
-        self.temperature = float(os.getenv("TEMPERATURE", "0.7"))
-        
-        # Get API keys from environment
-        self.openai_api_key = os.getenv("OPENAI_API_KEY", "")
-        self.anthropic_api_key = os.getenv("ANTHROPIC_API_KEY", "")
-        self.deepseek_api_key = os.getenv("DEEPSEEK_API_KEY", "")
-        self.gemini_api_key = os.getenv("GEMINI_API_KEY", "")
-        
-        # Provider mapping
-        self.providers = {
-            "openai": OpenAIProvider,
-            "anthropic": AnthropicProvider,
-            "claude": AnthropicProvider,  # Alias for anthropic
-            "deepseek": DeepSeekProvider,
-            "gemini": GeminiProvider,
-        }
-        
-        # Validate configuration
-        self._validate_config()
-        
-        logger.info(f"ModelRouter initialized with provider: {self.provider_name}, model: {self.model_name}")
+        super().__init__()
+        self.api_key = os.getenv("GEMINI_API_KEY")
+        self.available_models = ["gemini-pro", "gemini-ultra"]
+        self.default_model = "gemini-pro"
     
-    def _validate_config(self):
-        """Validate that the configuration is correct and required packages are installed."""
-        if self.provider_name not in self.providers:
-            supported = ", ".join(self.providers.keys())
-            raise ValueError(f"Provider '{self.provider_name}' not supported. Use one of: {supported}")
+    async def initialize(self):
+        """Initialize the Gemini client."""
+        if not self.is_available():
+            raise ValueError("Google Gemini API key not found")
         
-        # Check for required API keys
-        if self.provider_name in ["openai"] and not self.openai_api_key:
-            raise ValueError("OPENAI_API_KEY environment variable is required for OpenAI provider")
-        
-        if self.provider_name in ["anthropic", "claude"] and not self.anthropic_api_key:
-            raise ValueError("ANTHROPIC_API_KEY environment variable is required for Anthropic provider")
-        
-        if self.provider_name == "deepseek" and not self.deepseek_api_key:
-            raise ValueError("DEEPSEEK_API_KEY environment variable is required for DeepSeek provider")
-        
-        if self.provider_name == "gemini" and not self.gemini_api_key:
-            raise ValueError("GEMINI_API_KEY environment variable is required for Gemini provider")
+        genai.configure(api_key=self.api_key)
+        self.client = genai
     
-    def _get_api_key(self) -> str:
-        """Get the appropriate API key based on the provider."""
-        api_keys = {
-            "openai": self.openai_api_key,
-            "anthropic": self.anthropic_api_key,
-            "claude": self.anthropic_api_key,
-            "deepseek": self.deepseek_api_key,
-            "gemini": self.gemini_api_key,
-        }
-        return api_keys.get(self.provider_name, "")
-    
-    def _get_provider_instance(self) -> ModelProviderBase:
-        """Create and return the appropriate provider instance."""
-        provider_class = self.providers[self.provider_name]
-        return provider_class(
-            model_name=self.model_name,
-            api_key=self._get_api_key(),
-            temperature=self.temperature
-        )
-    
-    async def generate_response(
-        self, 
-        prompt: str, 
-        system_prompt: Optional[str] = None,
-        max_tokens: int = 1000
-    ) -> str:
-        """
-        Generate a response using the configured model provider.
+    async def generate(self, 
+                      prompt: str, 
+                      model: Optional[str] = None, 
+                      system_prompt: Optional[str] = None,
+                      temperature: float = 0.7, 
+                      max_tokens: int = 1000) -> Dict[str, Any]:
+        """Generate text using Google Gemini models."""
+        if not self.client:
+            await self.initialize()
         
-        Args:
-            prompt: The user's input text
-            system_prompt: Optional system instructions 
-            max_tokens: Maximum tokens in the response
+        # Use default model if none specified
+        model_name = model if model else self.default_model
+        
+        try:
+            start_time = time.time()
             
-        Returns:
-            The generated text response
-        """
-        provider = self._get_provider_instance()
-        return await provider.generate(
-            prompt=prompt, 
-            system_prompt=system_prompt,
-            max_tokens=max_tokens
+            # Get the model
+            generation_config = {
+                "temperature": temperature,
+                "max_output_tokens": max_tokens,
+                "top_p": 0.95,
+                "top_k": 0,
+            }
+            
+            # Create a model instance
+            model = self.client.GenerativeModel(
+                model_name=model_name,
+                generation_config=generation_config
+            )
+            
+            # Create chat session if system prompt is provided
+            if system_prompt:
+                chat = model.start_chat(history=[
+                    {
+                        "role": "user",
+                        "parts": [system_prompt]
+                    },
+                    {
+                        "role": "model",
+                        "parts": ["I'll follow these instructions."]
+                    }
+                ])
+                
+                # Run in event loop to maintain async pattern
+                response = await asyncio.to_thread(
+                    chat.send_message, prompt
+                )
+            else:
+                # Without system prompt, just generate directly
+                response = await asyncio.to_thread(
+                    model.generate_content, prompt
+                )
+            
+            processing_time = time.time() - start_time
+            
+            # Extract text from response
+            text = response.text
+            
+            return {
+                "text": text,
+                "provider": "gemini",
+                "model": model_name,
+                "tokens_used": None,  # Gemini doesn't provide token count in the same way
+                "processing_time": processing_time
+            }
+            
+        except Exception as e:
+            logger.error(f"Gemini generation error: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Gemini generation failed: {str(e)}")
+
+
+# Provider factory to create the appropriate provider instance
+class ModelProviderFactory:
+    """Factory class to create model provider instances."""
+    
+    @staticmethod
+    def create_provider(provider_name: str) -> ModelProviderBase:
+        """Create a provider instance based on the provider name."""
+        providers = {
+            ModelProvider.OPENAI: OpenAIProvider,
+            ModelProvider.ANTHROPIC: AnthropicProvider,
+            ModelProvider.DEEPSEEK: DeepSeekProvider,
+            ModelProvider.GEMINI: GeminiProvider
+        }
+        
+        if provider_name not in providers:
+            raise ValueError(f"Unsupported provider: {provider_name}")
+        
+        return providers[provider_name]()
+    
+    @staticmethod
+    async def get_available_provider() -> ModelProviderBase:
+        """Get the first available provider based on priority."""
+        # Define provider priority
+        provider_priority = [
+            ModelProvider.ANTHROPIC,  # First choice
+            ModelProvider.OPENAI,     # Second choice
+            ModelProvider.GEMINI,     # Third choice
+            ModelProvider.DEEPSEEK    # Last choice
+        ]
+        
+        for provider_name in provider_priority:
+            provider = ModelProviderFactory.create_provider(provider_name)
+            if provider.is_available():
+                try:
+                    await provider.initialize()
+                    logger.info(f"Selected provider: {provider_name}")
+                    return provider
+                except Exception as e:
+                    logger.warning(f"Failed to initialize {provider_name}: {e}")
+                    continue
+        
+        # If no provider is available
+        raise HTTPException(
+            status_code=503, 
+            detail="No AI providers available. Please check API keys in environment variables."
         )
 
 
-# Create a singleton instance for easy importing
-router = ModelRouter()
+# Endpoint to process a request and generate a response from a specific model
+@router.post("/ask", response_model=ModelResponse, summary="Generate text with a selected AI model")
+async def ask(request: ModelRequest):
+    """
+    Generate a text response using the specified AI model provider.
+    
+    - If provider is "auto", automatically selects an available provider.
+    - Returns the generated text along with metadata.
+    """
+    try:
+        provider_instance = None
+        
+        # If AUTO, select an available provider
+        if request.provider == ModelProvider.AUTO:
+            provider_instance = await ModelProviderFactory.get_available_provider()
+        else:
+            # Create the requested provider
+            provider_instance = ModelProviderFactory.create_provider(request.provider)
+            
+            # Check if the provider is available
+            if not provider_instance.is_available():
+                logger.warning(f"Requested provider {request.provider} not available. Trying alternatives.")
+                provider_instance = await ModelProviderFactory.get_available_provider()
+        
+        # Initialize the provider
+        await provider_instance.initialize()
+        
+        # Generate the response
+        result = await provider_instance.generate(
+            prompt=request.prompt,
+            model=request.model_name,
+            system_prompt=request.system_prompt,
+            temperature=request.temperature,
+            max_tokens=request.max_tokens
+        )
+        
+        # Return the response
+        return ModelResponse(**result)
+    
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
+    except Exception as e:
+        # Log the full error with traceback
+        logger.error(f"Error in /ask endpoint: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Failed to generate response: {str(e)}")
 
 
+# Function to generate a response (to be called from main.py)
 async def generate_response(
     prompt: str, 
     system_prompt: Optional[str] = None,
+    provider: str = "auto",
+    model_name: Optional[str] = None,
+    temperature: float = 0.7,
     max_tokens: int = 1000
 ) -> str:
     """
-    Convenience function to generate a response using the default router.
+    Generate a text response using available AI models.
+    This function is exported for use in other modules.
     
     Args:
-        prompt: The user's input text
+        prompt: The user's input prompt
         system_prompt: Optional system instructions
-        max_tokens: Maximum tokens in the response
+        provider: The model provider (defaults to "auto" for automatic selection)
+        model_name: Optional specific model name
+        temperature: Temperature parameter (0-1)
+        max_tokens: Maximum tokens to generate
         
     Returns:
         The generated text response
     """
-    return await router.generate_response(prompt, system_prompt, max_tokens)
+    try:
+        # Create request object
+        request = ModelRequest(
+            prompt=prompt,
+            provider=provider,
+            model_name=model_name,
+            system_prompt=system_prompt,
+            temperature=temperature,
+            max_tokens=max_tokens
+        )
+        
+        # Use the ask endpoint logic
+        response = await ask(request)
+        return response.text
+        
+    except Exception as e:
+        logger.error(f"Error in generate_response: {str(e)}")
+        # Return a fallback message
+        return f"I'm sorry, I encountered an error generating a response. Please try again later. (Error: {str(e)})"
+
+
+# Endpoint to list available providers and models
+@router.get("/models", summary="List available AI model providers and models")
+async def list_models():
+    """
+    Get a list of all available AI model providers and their models.
+    Only includes providers that have API keys configured.
+    """
+    available_providers = {}
+    
+    # Check each provider
+    for provider_name in ModelProvider:
+        if provider_name == ModelProvider.AUTO:
+            continue  # Skip the AUTO provider
+            
+        try:
+            provider = ModelProviderFactory.create_provider(provider_name)
+            if provider.is_available():
+                available_providers[provider_name] = {
+                    "available": True,
+                    "models": provider.available_models,
+                    "default_model": provider.default_model
+                }
+            else:
+                available_providers[provider_name] = {
+                    "available": False,
+                    "models": [],
+                    "default_model": None
+                }
+        except Exception as e:
+            logger.error(f"Error checking provider {provider_name}: {str(e)}")
+            available_providers[provider_name] = {
+                "available": False,
+                "error": str(e),
+                "models": []
+            }
+    
+    return {
+        "providers": available_providers
+    }
+
+
+# Health check endpoint
+@router.get("/models/health", summary="Check model router health status")
+async def health_check():
+    """Health check endpoint to verify the model router is operational."""
+    try:
+        # Check if at least one provider is available
+        providers = [
+            ("openai", os.getenv("OPENAI_API_KEY")),
+            ("anthropic", os.getenv("ANTHROPIC_API_KEY")),
+            ("deepseek", os.getenv("DEEPSEEK_API_KEY")),
+            ("gemini", os.getenv("GEMINI_API_KEY"))
+        ]
+        
+        available_providers = [name for name, key in providers if key]
+        
+        if not available_providers:
+            return JSONResponse(
+                status_code=503,
+                content={"status": "warning", "message": "No model providers configured"}
+            )
+        
+        return {
+            "status": "healthy",
+            "available_providers": available_providers
+        }
+    except Exception as e:
+        logger.error(f"Health check failed: {str(e)}")
+        return JSONResponse(
+            status_code=500,
+            content={"status": "error", "message": f"Health check failed: {str(e)}"}
+        )
