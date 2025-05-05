@@ -1,0 +1,1 @@
+DB_PATH = os.path.join("Data_Sys", "messages.db")
