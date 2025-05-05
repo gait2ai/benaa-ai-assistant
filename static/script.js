@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const sendButton = document.getElementById('sendButton');
 
     // API URL based on current origin
-    const API_URL = window.location.origin + "/api/chat";
+    const API_URL = "https://benaa-ai-assistant.onrender.com/api/chat";
 
     // Store messages in sessionStorage
     let chatHistory = [];
