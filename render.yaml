@@ -4,7 +4,7 @@ services:
     env: python
     plan: free  # يمكنك تغييره إلى professional إذا كنت تستخدم خطة مدفوعة
     buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    startCommand: uvicorn main:app --host=0.0.0.0 --port=$PORT
     envVars:
       - key: OPENAI_API_KEY
         value: your_openai_key_here
