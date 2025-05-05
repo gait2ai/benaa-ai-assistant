@@ -19,7 +19,7 @@ from dotenv import load_dotenv
 from langdetect import detect
 
 # Import the new model router module
-from model_router import generate_response
+from model_router import router as model_router
 
 # Load environment variables
 load_dotenv()
@@ -44,6 +44,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(model_router)
 
 # Path to embeddings and data
 EMBEDDINGS_FOLDER = "./embeddings"
