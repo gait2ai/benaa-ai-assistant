@@ -50,11 +50,11 @@ document.addEventListener('DOMContentLoaded', function () {
         
         // Format time as HH:MM in Arabic
         const timeOptions = { hour: '2-digit', minute: '2-digit', hour12: false };
-        const time = now.toLocaleTimeString('ar-SA', timeOptions);
+        const time = now.toLocaleTimeString('ar-EG', timeOptions);
         
         // Format date as YYYY-MM-DD in Arabic
         const dateOptions = { year: 'numeric', month: '2-digit', day: '2-digit' };
-        const date = now.toLocaleDateString('ar-SA', dateOptions);
+        const date = now.toLocaleDateString('ar-EG', dateOptions);
         
         return `${time} | ${date}`;
     }
