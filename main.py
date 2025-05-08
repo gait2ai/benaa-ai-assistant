@@ -1,4 +1,4 @@
-# main.py (updated with model_router integration)
+# main.py (updated with model_router integration and memory optimization)
 
 import os
 import json
@@ -6,6 +6,8 @@ import logging
 from typing import List, Dict, Any
 import time
 from datetime import datetime
+import gc
+from cachetools import TTLCache, LRUCache
 
 from fastapi import FastAPI, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -18,7 +20,7 @@ from sentence_transformers import SentenceTransformer
 from dotenv import load_dotenv
 from langdetect import detect
 
-# Import the new model router module
+# Import the model router module
 from model_router import router as model_router
 
 # Load environment variables
@@ -54,6 +56,17 @@ CONFIG_FOLDER = "./config"
 STATIC_FOLDER = "./static"
 SYSTEM_PROMPT_PATH = os.path.join(CONFIG_FOLDER, "system_prompt.txt")
 
+# Global variables to store loaded models and data
+global_index = None
+global_metadata = []
+global_embedding_model = None
+global_model_name = None
+
+# Cache configuration
+CACHE_MAX_SIZE = 100  # Maximum number of cached responses
+CACHE_TTL = 3600      # Cache time-to-live in seconds (1 hour)
+response_cache = TTLCache(maxsize=CACHE_MAX_SIZE, ttl=CACHE_TTL)
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -76,42 +89,53 @@ class RAGResponse(BaseModel):
 class FaissRetriever:
     """Class for retrieving relevant documents using FAISS."""
     
-    def __init__(self, embeddings_folder: str = EMBEDDINGS_FOLDER):
-        """Initialize the retriever with paths to the FAISS index and metadata."""
-        self.embeddings_folder = embeddings_folder
-        self.index_path = os.path.join(embeddings_folder, "document_index.faiss")
-        self.metadata_path = os.path.join(embeddings_folder, "document_metadata.json")
-        self.model_info_path = os.path.join(embeddings_folder, "model_info.json")
+    def __init__(self, index=None, metadata=None, embedding_model=None, model_name=None):
+        """Initialize the retriever with pre-loaded components or load them if needed."""
+        self.index = index
+        self.metadata = metadata
+        self.embedding_model = embedding_model
+        self.model_name = model_name
         
-        self.index = None
-        self.metadata = []
-        self.model_name = None
-        self.embedding_model = None
-        
-        # Load the retriever components
-        self._load_components()
+        # Use global components if available, otherwise load them
+        if self.index is None or self.metadata is None or self.embedding_model is None:
+            global global_index, global_metadata, global_embedding_model, global_model_name
+            
+            if global_index is not None and global_metadata and global_embedding_model is not None:
+                self.index = global_index
+                self.metadata = global_metadata
+                self.embedding_model = global_embedding_model
+                self.model_name = global_model_name
+            else:
+                # This should not happen as components should be loaded at startup
+                logger.warning("Models not loaded globally, loading them now (this should not happen)")
+                self._load_components()
     
     def _load_components(self):
         """Load FAISS index, metadata, and embedding model."""
         try:
+            # Define paths
+            index_path = os.path.join(EMBEDDINGS_FOLDER, "document_index.faiss")
+            metadata_path = os.path.join(EMBEDDINGS_FOLDER, "document_metadata.json")
+            model_info_path = os.path.join(EMBEDDINGS_FOLDER, "model_info.json")
+            
             # Check if index and metadata files exist
-            if not os.path.exists(self.index_path) or not os.path.exists(self.metadata_path):
-                logger.error(f"FAISS index or metadata file not found at {self.embeddings_folder}")
+            if not os.path.exists(index_path) or not os.path.exists(metadata_path):
+                logger.error(f"FAISS index or metadata file not found at {EMBEDDINGS_FOLDER}")
                 raise FileNotFoundError(f"FAISS index or metadata not found. Run embed_documents.py first.")
             
             # Load FAISS index
-            logger.info(f"Loading FAISS index from {self.index_path}")
-            self.index = faiss.read_index(self.index_path)
+            logger.info(f"Loading FAISS index from {index_path}")
+            self.index = faiss.read_index(index_path)
             logger.info(f"Loaded FAISS index with {self.index.ntotal} vectors")
             
             # Load document metadata
-            logger.info(f"Loading document metadata from {self.metadata_path}")
-            with open(self.metadata_path, 'r', encoding='utf-8') as f:
+            logger.info(f"Loading document metadata from {metadata_path}")
+            with open(metadata_path, 'r', encoding='utf-8') as f:
                 self.metadata = json.load(f)
             logger.info(f"Loaded metadata for {len(self.metadata)} document chunks")
             
             # Load model info
-            with open(self.model_info_path, 'r', encoding='utf-8') as f:
+            with open(model_info_path, 'r', encoding='utf-8') as f:
                 model_info = json.load(f)
                 self.model_name = model_info.get("model_name")
             
@@ -150,7 +174,7 @@ class FaissRetriever:
             results = []
             for i, doc_idx in enumerate(indices[0]):
                 if doc_idx != -1 and doc_idx < len(self.metadata):  # Valid index
-                    chunk = self.metadata[doc_idx]
+                    chunk = self.metadata[doc_idx].copy()  # Use copy to avoid modifying original metadata
                     
                     # Add similarity score
                     similarity = 1.0 - distances[0][i]  # Convert L2 distance to similarity score
@@ -214,8 +238,14 @@ def filter_results(chunks: List[Dict[str, Any]], top_k: int = 3) -> List[Dict[st
 
 # Dependency to get retriever instance
 def get_retriever():
-    """Dependency to get the FAISS retriever."""
-    return FaissRetriever()
+    """Dependency to get the FAISS retriever with pre-loaded models."""
+    global global_index, global_metadata, global_embedding_model, global_model_name
+    return FaissRetriever(
+        index=global_index,
+        metadata=global_metadata,
+        embedding_model=global_embedding_model,
+        model_name=global_model_name
+    )
 
 
 def load_system_prompt():
@@ -294,10 +324,36 @@ def get_language_instruction(lang_code: str) -> str:
     return f"Always respond in {language_name}."
 
 
+def get_cache_key(message: str) -> str:
+    """Generate a consistent cache key from user message.
+    Trims and normalizes the message to improve cache hit rate.
+    
+    Args:
+        message: The user's query
+        
+    Returns:
+        A cache key string
+    """
+    # Basic normalization: lowercase and strip whitespace
+    normalized = message.lower().strip()
+    # Truncate very long messages to avoid excessive memory usage in cache keys
+    if len(normalized) > 200:
+        normalized = normalized[:200]
+    return normalized
+
+
 @app.post("/api/chat", response_model=RAGResponse)
 async def process_message(user_message: UserMessage, retriever: FaissRetriever = Depends(get_retriever)):
     """Process user message using RAG with FAISS retrieval."""
     try:
+        # Generate cache key
+        cache_key = get_cache_key(user_message.message)
+        
+        # Check if this query is cached
+        if cache_key in response_cache:
+            logger.info(f"Cache hit for query: {cache_key[:30]}{'...' if len(cache_key) > 30 else ''}")
+            return RAGResponse(answer=response_cache[cache_key])
+            
         # Detect language
         detected_lang = detect_language(user_message.message)
         language_instruction = get_language_instruction(detected_lang)
@@ -323,13 +379,17 @@ async def process_message(user_message: UserMessage, retriever: FaissRetriever =
             language_instruction=language_instruction
         )
 
-        # Use the model_router instead of directly calling OpenAI
+        # Use the model_router to generate a response
+        from model_router import generate_response
         assistant_response = await generate_response(
             prompt=user_message.message,
             system_prompt=system_message,
             max_tokens=1000
         )
-
+        
+        # Cache the response
+        response_cache[cache_key] = assistant_response
+        
         return RAGResponse(answer=assistant_response)
 
     except Exception as e:
@@ -348,6 +408,53 @@ async def get_favicon():
     return Response(status_code=204)
 
 
+def load_models_and_data():
+    """Load all models and data needed for the application."""
+    global global_index, global_metadata, global_embedding_model, global_model_name
+    
+    try:
+        # Define paths
+        index_path = os.path.join(EMBEDDINGS_FOLDER, "document_index.faiss")
+        metadata_path = os.path.join(EMBEDDINGS_FOLDER, "document_metadata.json")
+        model_info_path = os.path.join(EMBEDDINGS_FOLDER, "model_info.json")
+        
+        # Check if files exist
+        if not os.path.exists(index_path) or not os.path.exists(metadata_path):
+            logger.error(f"FAISS index or metadata file not found at {EMBEDDINGS_FOLDER}")
+            raise FileNotFoundError(f"FAISS index or metadata not found. Run embed_documents.py first.")
+        
+        # Load FAISS index
+        logger.info(f"Loading FAISS index from {index_path}")
+        start_time = time.time()
+        global_index = faiss.read_index(index_path)
+        logger.info(f"Loaded FAISS index with {global_index.ntotal} vectors in {time.time() - start_time:.2f} seconds")
+        
+        # Load document metadata
+        logger.info(f"Loading document metadata from {metadata_path}")
+        with open(metadata_path, 'r', encoding='utf-8') as f:
+            global_metadata = json.load(f)
+        logger.info(f"Loaded metadata for {len(global_metadata)} document chunks")
+        
+        # Load model info
+        with open(model_info_path, 'r', encoding='utf-8') as f:
+            model_info = json.load(f)
+            global_model_name = model_info.get("model_name")
+        
+        # Load embedding model
+        logger.info(f"Loading embedding model: {global_model_name}")
+        start_time = time.time()
+        global_embedding_model = SentenceTransformer(global_model_name)
+        logger.info(f"Model loaded in {time.time() - start_time:.2f} seconds")
+        
+        # Force garbage collection after loading
+        gc.collect()
+        
+        return True
+    except Exception as e:
+        logger.error(f"Error loading models and data: {e}")
+        return False
+
+
 @app.on_event("startup")
 async def startup_event():
     """Run startup tasks."""
@@ -357,12 +464,12 @@ async def startup_event():
     os.makedirs(CONFIG_FOLDER, exist_ok=True)
     os.makedirs(STATIC_FOLDER, exist_ok=True)
     
-    # Check if FAISS index exists
-    index_path = os.path.join(EMBEDDINGS_FOLDER, "document_index.faiss")
-    if not os.path.exists(index_path):
-        logger.warning(
-            "FAISS index not found. Please run embed_documents.py to create embeddings before using the application."
-        )
+    # Load all models and data at startup
+    logger.info("Loading models and data at startup...")
+    if load_models_and_data():
+        logger.info("Startup complete: All models and data loaded successfully")
+    else:
+        logger.error("Startup incomplete: Failed to load models and data")
 
 
 # Mount static files AFTER defining API endpoints to prevent route overriding
@@ -374,11 +481,41 @@ async def read_index():
     index_path = os.path.join("static", "index.html")
     return index_path
 
+
+# Add health check endpoint
+@app.get("/health")
+async def health_check():
+    """Health check endpoint to verify models are loaded."""
+    global global_index, global_embedding_model
+    
+    if global_index is None or global_embedding_model is None:
+        # Models not loaded yet
+        return {"status": "initializing", "message": "Models are still loading"}
+    
+    return {"status": "healthy", "message": "Service is running with all models loaded"}
+
+
+def clear_cache():
+    """Clear the response cache."""
+    global response_cache
+    response_cache.clear()
+    gc.collect()
+    logger.info("Response cache cleared and garbage collected")
+
+
+# Add endpoint to clear cache (for admin use)
+@app.post("/api/clear-cache")
+async def api_clear_cache():
+    """Admin endpoint to clear the response cache."""
+    clear_cache()
+    return {"status": "success", "message": "Cache cleared successfully"}
+
+
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 10000))
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=10000,
+        port=port,
     )
