@@ -4,52 +4,38 @@
 fastapi[all]==0.109.2
 uvicorn==0.27.1
 python-dotenv==1.0.1
-python-multipart==0.0.7  # جديد: لمعالجة تحميل الملفات
+python-multipart==0.0.7
 
 #######################################
 #          AI Providers & LLMs        #
 #######################################
-openai==1.12.0           # لـ OpenAI و DeepSeek
-anthropic==0.18.0        # لـ Claude
-google-generativeai==0.3.2  # لـ Gemini
-httpx==0.27.0            # للاتصال بـ DeepSeek API
-tenacity==8.2.3          # لإعادة المحاولة التلقائية
-
-#######################################
-#       Document Processing           #
-#######################################
-pypdf==4.2.0             # محدث: بديل PyPDF2 (أكثر أماناً)
-python-docx==1.1.0
-openpyxl==3.1.2
-pandas==2.2.2            # محدث: مع إصلاحات الأمان
-beautifulsoup4==4.12.3   # لمعالجة HTML
+openai==1.12.0
+anthropic==0.18.0
+google-generativeai==0.3.2
+httpx==0.27.0
+tenacity==8.2.3
 
 #######################################
 #     Embeddings & NLP Libraries      #
 #######################################
 sentence-transformers==2.6.1
 transformers==4.38.2
-torch==2.2.1             # خلفية PyTorch (CPU فقط)
-faiss-cpu==1.8.0         # للبحث الدلالي (إصدار CPU)
-langdetect==1.0.9        # للكشف عن اللغة
+torch==2.2.1
+faiss-cpu==1.8.0
+langdetect==1.0.9
+huggingface-hub==0.22.2
 
 #######################################
 #         Utilities & Helpers         #
 #######################################
 numpy==1.26.4
 scikit-learn==1.4.1.post1
-tqdm==4.66.2             # لأشرطة التقدم
-aiofiles==23.2.1         # جديد: لعمليات الملفات غير المتزامنة
-pydantic-settings==2.2.1 # جديد: للإعدادات المتقدمة
+aiofiles==23.2.1
+pydantic-settings==2.2.1
+tqdm==4.66.2
 
 #######################################
 #         Optional Packages           #
 #######################################
-uvloop==0.19.0           # لتحسين أداء الخادم (اختياري)
-loguru==0.7.2            # جديد: لتسجيل الأحداث المحسن
-watchdog==4.0.0          # جديد: لمراقبة تغييرات الملفات
-
-#######################################
-#       Hugging Face Integration      #
-#######################################
-huggingface-hub==0.22.2  # لتنزيل النماذج من Hugging Face
+uvloop==0.19.0
+loguru==0.7.2
