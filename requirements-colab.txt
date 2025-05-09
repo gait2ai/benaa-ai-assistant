@@ -1,0 +1,31 @@
+# Core API
+fastapi[all]==0.109.2
+uvicorn==0.27.1
+python-dotenv==1.0.1
+python-multipart==0.0.7
+
+# AI Providers & LLMs
+openai==1.12.0
+anthropic==0.18.0
+google-generativeai==0.3.2
+httpx==0.28.1
+tenacity==8.2.3
+
+# Embeddings & NLP Libraries
+sentence-transformers==2.6.1
+transformers==4.38.2
+torch==2.6.0
+faiss-cpu==1.8.0
+langdetect==1.0.9
+huggingface-hub==0.27.0
+
+# Utilities & Helpers
+numpy==2.0.0
+scikit-learn==1.4.1.post1
+aiofiles==23.2.1
+pydantic-settings==2.2.1
+tqdm==4.67.0
+
+# Optional Packages
+uvloop==0.19.0
+loguru==0.7.2
