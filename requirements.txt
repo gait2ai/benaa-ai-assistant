@@ -20,7 +20,7 @@ tenacity==8.2.3
 #######################################
 sentence-transformers==2.6.1
 transformers==4.38.2
-torch==2.2.1
+torch==2.6.0
 faiss-cpu==1.8.0
 langdetect==1.0.9
 huggingface-hub==0.22.2
@@ -28,7 +28,7 @@ huggingface-hub==0.22.2
 #######################################
 #         Utilities & Helpers         #
 #######################################
-numpy==1.26.4
+numpy==2.0.0
 scikit-learn==1.4.1.post1
 aiofiles==23.2.1
 pydantic-settings==2.2.1
