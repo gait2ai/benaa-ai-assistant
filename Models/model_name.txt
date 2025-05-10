@@ -1,1 +1,6 @@
-
+deepseek/deepseek-prover-v2:free
+mistralai/mistral-small-3.1-24b-instruct:free
+microsoft/phi-4-reasoning:free
+nousresearch/deephermes-3-mistral-24b-preview:free
+qwen/qwen3-4b:free
+deepseek/deepseek-r1-distill-qwen-32b:free
