@@ -1,20 +1,30 @@
-fastapi==0.104.1
-uvicorn==0.23.2
-pydantic==2.4.2
-httpx==0.25.0
-python-dotenv==1.0.0
-numpy==1.24.3
-faiss-cpu==1.7.4  # or faiss-gpu if GPU is available
-sentence-transformers==2.2.2
-cachetools==5.3.1
-langdetect==1.0.9
-gc==0.2.5  # Used for garbage collection
-json==2.0.9  # Part of standard library
-logging==0.5.1.2  # Part of standard library
-asyncio==3.4.3  # Part of standard library
-traceback==2.0.0  # Part of standard library
-os  # Part of standard library
-time  # Part of standard library
-datetime  # Part of standard library
-typing  # Part of standard library
-enum  # Part of standard library
+# Web framework
+fastapi>=0.95.0,<1.0.0
+uvicorn>=0.22.0,<1.0.0
+pydantic>=2.0.0,<3.0.0
+
+# HTTP client for API calls
+httpx>=0.24.0,<1.0.0
+
+# ML & Vector DB
+numpy>=1.24.0,<2.0.0
+faiss-cpu>=1.7.4,<2.0.0
+sentence-transformers>=2.2.2,<3.0.0
+
+# NLP utilities
+langdetect>=1.0.9,<2.0.0
+
+# Caching
+cachetools>=5.3.0,<6.0.0
+
+# Configuration
+python-dotenv>=1.0.0,<2.0.0
+
+# CORS middleware
+starlette>=0.27.0,<1.0.0
+
+# Optional: Development tools
+pytest>=7.3.1,<8.0.0
+black>=23.3.0,<24.0.0
+isort>=5.12.0,<6.0.0
+flake8>=6.0.0,<7.0.0
