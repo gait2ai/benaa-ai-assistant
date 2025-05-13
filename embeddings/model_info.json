@@ -1,14 +1,6 @@
-# تصحيح المحتوى يدويًا
-correct_model_info = {
+{
     "model_name": "distiluse-base-multilingual-cased-v2",
-    "vector_dimension": 384,  
-    "created_at": "2025-05-07 09:43:11",
-    "has_system_prompt": True,
-    "target_chunk_size": 250,
-    "max_chunk_size": 350,
-    "min_chunk_size": 100
+    "vector_dimension": 384,
+    "language_support": ["ar", "en"],
+    "created_at": "2024-06-20"
 }
-
-# حفظ التغييرات
-with open("embeddings/model_info.json", "w") as f:
-    json.dump(correct_model_info, f, indent=2)
