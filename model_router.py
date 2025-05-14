@@ -262,7 +262,7 @@ class OpenRouterProvider(ModelProviderBase):
                     continue  # Try next model
                 
                 # Parse the response
-                result = await response.json()
+                result = response.json()
                 
                 processing_time = time.time() - start_time
                 
