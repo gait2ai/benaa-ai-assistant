@@ -1,0 +1,9 @@
+{
+  "model_name": "distiluse-base-multilingual-cased-v2",
+  "vector_dimension": 512,
+  "created_at": "2025-05-14 12:00:28",
+  "has_system_prompt": true,
+  "target_chunk_size": 250,
+  "max_chunk_size": 350,
+  "min_chunk_size": 100
+}
