@@ -81,6 +81,27 @@ class UserMessage(BaseModel):
 class RAGResponse(BaseModel):
     answer: str
 
+def clean_json_text(text: str) -> str:
+    """Clean JSON text for better readability in responses.
+    
+    Args:
+        text: Text that might contain JSON
+        
+    Returns:
+        Cleaned text or formatted JSON
+    """
+    text = text.strip()
+    if text.startswith("{") and text.endswith("}"):
+        try:
+            data = json.loads(text)
+            # Return formatted JSON with indentation
+            return json.dumps(data, indent=2, ensure_ascii=False)
+        except json.JSONDecodeError:
+            # Not valid JSON, return as is
+            pass
+    return text
+
+
 class FaissRetriever:
     """Class for retrieving relevant documents using FAISS."""
     
@@ -159,32 +180,60 @@ class FaissRetriever:
             query_embedding = self.embedding_model.encode([query])[0]
             query_embedding = query_embedding.reshape(1, -1)
             
-            # Normalize for cosine similarity
+            # Normalize for cosine similarity - CRITICAL for accurate similarity calculation
             faiss.normalize_L2(query_embedding)
             
-            # Search the index - retrieve more than needed for filtering
-            distances, indices = self.index.search(query_embedding, top_k * 2)  # Get more for filtering
+            # Search the index - retrieve more than needed for filtering duplicates
+            # Ensure we retrieve enough candidates (at least 50 or top_k*3, whichever is larger)
+            retrieve_count = min(max(top_k * 3, 50), self.index.ntotal)
+            distances, indices = self.index.search(query_embedding, retrieve_count)
             
-            # Get the corresponding documents
+            # Track seen texts to avoid duplicates
+            seen_texts = set()
+            
+            # Get the corresponding documents with proper similarity calculation
             results = []
             for i, doc_idx in enumerate(indices[0]):
                 if doc_idx != -1 and doc_idx < len(self.metadata):  # Valid index
                     chunk = self.metadata[doc_idx].copy()  # Use copy to avoid modifying original metadata
                     
-                    # Add similarity score
-                    similarity = 1.0 - distances[0][i]  # Convert L2 distance to similarity score
-                    chunk["similarity"] = max(0.0, min(1.0, similarity))  # Clip to [0, 1]
+                    # Clean text if it appears to be JSON
+                    chunk_text = clean_json_text(chunk.get("text", "").strip())
+                    chunk["text"] = chunk_text
+                    
+                    # Skip duplicates based on text content
+                    text_key = chunk_text[:100]  # Use prefix for deduplication to save memory
+                    if text_key in seen_texts:
+                        logger.debug(f"Skipped duplicate chunk: {text_key[:50]}...")
+                        continue
+                    seen_texts.add(text_key)
+                    
+                    # Proper similarity calculation for L2-normalized vectors:
+                    # For normalized vectors, L2 distance of 0 means identical (similarity=1)
+                    # L2 distance of 2 means opposite (similarity=0)
+                    # Therefore similarity = 1 - (distance/2)
+                    raw_similarity = 1.0 - (distances[0][i] / 2.0)
+                    
+                    # Ensure similarity score is within [0,1] range
+                    chunk["similarity"] = max(0.0, min(1.0, raw_similarity))
                     
                     # Add retrieval timestamp for recency filtering if needed
                     chunk["retrieval_timestamp"] = datetime.now().isoformat()
                     
                     results.append(chunk)
+                    
+                    # Break if we have enough non-duplicate results
+                    if len(results) >= top_k:
+                        break
+            
+            # Sort by similarity score to ensure highest relevance first
+            results = sorted(results, key=lambda x: x.get("similarity", 0.0), reverse=True)
             
             if not results:
                 logger.warning(f"No relevant documents found for query: {query}")
                 return [{"text": "No relevant information found.", "source_file": "", "chunk_id": -1, "similarity": 0.0}]
                 
-            return results
+            return results[:top_k]  # Ensure we only return top_k after deduplication
             
         except Exception as e:
             logger.error(f"Error retrieving documents: {e}")
