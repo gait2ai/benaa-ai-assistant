@@ -1,0 +1,602 @@
+{
+  "taiz": {
+    "frequency": 51,
+    "score": 51.0,
+    "original": "taiz",
+    "translated": "تعز"
+  },
+  "member": {
+    "frequency": 36,
+    "score": 36.0,
+    "original": "member",
+    "translated": "عضو"
+  },
+  "governorate": {
+    "frequency": 30,
+    "score": 30.0,
+    "original": "governorate",
+    "translated": "المحافظة"
+  },
+  "emergency": {
+    "frequency": 27,
+    "score": 27.0,
+    "original": "emergency",
+    "translated": ""
+  },
+  "wash": {
+    "frequency": 26,
+    "score": 26.0,
+    "original": "wash",
+    "translated": "المياه والإصحاح البيئي"
+  },
+  "cluster": {
+    "frequency": 26,
+    "score": 26.0,
+    "original": "cluster",
+    "translated": ""
+  },
+  "hhs": {
+    "frequency": 24,
+    "score": 24.0,
+    "original": "hhs",
+    "translated": ""
+  },
+  "district": {
+    "frequency": 23,
+    "score": 23.0,
+    "original": "district",
+    "translated": ""
+  },
+  "vulnerable": {
+    "frequency": 23,
+    "score": 23.0,
+    "original": "vulnerable",
+    "translated": ""
+  },
+  "yhf": {
+    "frequency": 23,
+    "score": 23.0,
+    "original": "yhf",
+    "translated": ""
+  },
+  "salh": {
+    "frequency": 22,
+    "score": 22.0,
+    "original": "salh",
+    "translated": ""
+  },
+  "education": {
+    "frequency": 22,
+    "score": 22.0,
+    "original": "education",
+    "translated": "التعليم"
+  },
+  "shelter": {
+    "frequency": 22,
+    "score": 22.0,
+    "original": "shelter",
+    "translated": "مأوى"
+  },
+  "food": {
+    "frequency": 21,
+    "score": 21.0,
+    "original": "food",
+    "translated": ""
+  },
+  "districts": {
+    "frequency": 19,
+    "score": 19.0,
+    "original": "districts",
+    "translated": ""
+  },
+  "ocha": {
+    "frequency": 19,
+    "score": 19.0,
+    "original": "ocha",
+    "translated": ""
+  },
+  "bcfhd": {
+    "frequency": 19,
+    "score": 19.0,
+    "original": "bcfhd",
+    "translated": ""
+  },
+  "security": {
+    "frequency": 16,
+    "score": 16.0,
+    "original": "security",
+    "translated": ""
+  },
+  "livelihoods": {
+    "frequency": 15,
+    "score": 15.0,
+    "original": "livelihoods",
+    "translated": "سبل العيش"
+  },
+  "assistance": {
+    "frequency": 14,
+    "score": 14.0,
+    "original": "assistance",
+    "translated": ""
+  },
+  "irc": {
+    "frequency": 14,
+    "score": 14.0,
+    "original": "irc",
+    "translated": ""
+  },
+  "2022": {
+    "frequency": 14,
+    "score": 14.0,
+    "original": "2022",
+    "translated": ""
+  },
+  "affected": {
+    "frequency": 13,
+    "score": 13.0,
+    "original": "affected",
+    "translated": ""
+  },
+  "idps": {
+    "frequency": 12,
+    "score": 12.0,
+    "original": "idps",
+    "translated": ""
+  },
+  "health": {
+    "frequency": 12,
+    "score": 12.0,
+    "original": "health",
+    "translated": "الصحة"
+  },
+  "marib": {
+    "frequency": 12,
+    "score": 12.0,
+    "original": "marib",
+    "translated": ""
+  },
+  "non": {
+    "frequency": 11,
+    "score": 11.0,
+    "original": "non",
+    "translated": ""
+  },
+  "yemen": {
+    "frequency": 11,
+    "score": 11.0,
+    "original": "yemen",
+    "translated": ""
+  },
+  "protection": {
+    "frequency": 11,
+    "score": 11.0,
+    "original": "protection",
+    "translated": "الحماية"
+  },
+  "humanitarian": {
+    "frequency": 10,
+    "score": 10.0,
+    "original": "humanitarian",
+    "translated": "إنساني"
+  },
+  "development": {
+    "frequency": 10,
+    "score": 10.0,
+    "original": "development",
+    "translated": ""
+  },
+  "2021": {
+    "frequency": 10,
+    "score": 10.0,
+    "original": "2021",
+    "translated": ""
+  },
+  "households": {
+    "frequency": 10,
+    "score": 10.0,
+    "original": "households",
+    "translated": ""
+  },
+  "funded": {
+    "frequency": 10,
+    "score": 10.0,
+    "original": "funded",
+    "translated": ""
+  },
+  "network": {
+    "frequency": 10,
+    "score": 10.0,
+    "original": "network",
+    "translated": ""
+  },
+  "individuals": {
+    "frequency": 9,
+    "score": 9.0,
+    "original": "individuals",
+    "translated": ""
+  },
+  "priority": {
+    "frequency": 9,
+    "score": 9.0,
+    "original": "priority",
+    "translated": ""
+  },
+  "000": {
+    "frequency": 9,
+    "score": 9.0,
+    "original": "000",
+    "translated": ""
+  },
+  "mudhaffar": {
+    "frequency": 9,
+    "score": 9.0,
+    "original": "mudhaffar",
+    "translated": ""
+  },
+  "services": {
+    "frequency": 8,
+    "score": 8.0,
+    "original": "services",
+    "translated": ""
+  },
+  "response": {
+    "frequency": 8,
+    "score": 8.0,
+    "original": "response",
+    "translated": ""
+  },
+  "city": {
+    "frequency": 8,
+    "score": 8.0,
+    "original": "city",
+    "translated": ""
+  },
+  "governmental": {
+    "frequency": 8,
+    "score": 8.0,
+    "original": "governmental",
+    "translated": ""
+  },
+  "organizations": {
+    "frequency": 8,
+    "score": 8.0,
+    "original": "organizations",
+    "translated": ""
+  },
+  "camp": {
+    "frequency": 8,
+    "score": 8.0,
+    "original": "camp",
+    "translated": ""
+  },
+  "idp": {
+    "frequency": 7,
+    "score": 7.0,
+    "original": "idp",
+    "translated": ""
+  },
+  "sites": {
+    "frequency": 7,
+    "score": 7.0,
+    "original": "sites",
+    "translated": ""
+  },
+  "conflict": {
+    "frequency": 7,
+    "score": 7.0,
+    "original": "conflict",
+    "translated": ""
+  },
+  "2020": {
+    "frequency": 7,
+    "score": 7.0,
+    "original": "2020",
+    "translated": ""
+  },
+  "qahirah": {
+    "frequency": 7,
+    "score": 7.0,
+    "original": "qahirah",
+    "translated": ""
+  },
+  "kits": {
+    "frequency": 7,
+    "score": 7.0,
+    "original": "kits",
+    "translated": ""
+  },
+  "gov": {
+    "frequency": 7,
+    "score": 7.0,
+    "original": "gov",
+    "translated": ""
+  },
+  "improving": {
+    "frequency": 7,
+    "score": 7.0,
+    "original": "improving",
+    "translated": ""
+  },
+  "providing": {
+    "frequency": 7,
+    "score": 7.0,
+    "original": "providing",
+    "translated": ""
+  },
+  "management": {
+    "frequency": 7,
+    "score": 7.0,
+    "original": "management",
+    "translated": ""
+  },
+  "projects": {
+    "frequency": 6,
+    "score": 6.0,
+    "original": "projects",
+    "translated": ""
+  },
+  "2023": {
+    "frequency": 6,
+    "score": 6.0,
+    "original": "2023",
+    "translated": ""
+  },
+  "communities": {
+    "frequency": 6,
+    "score": 6.0,
+    "original": "communities",
+    "translated": ""
+  },
+  "taizz": {
+    "frequency": 6,
+    "score": 6.0,
+    "original": "taizz",
+    "translated": ""
+  },
+  "rehabilitation": {
+    "frequency": 6,
+    "score": 6.0,
+    "original": "rehabilitation",
+    "translated": ""
+  },
+  "cholera": {
+    "frequency": 6,
+    "score": 6.0,
+    "original": "cholera",
+    "translated": ""
+  },
+  "access": {
+    "frequency": 6,
+    "score": 6.0,
+    "original": "access",
+    "translated": ""
+  },
+  "nfi": {
+    "frequency": 6,
+    "score": 6.0,
+    "original": "nfi",
+    "translated": ""
+  },
+  "cccm": {
+    "frequency": 6,
+    "score": 6.0,
+    "original": "cccm",
+    "translated": ""
+  },
+  "empowerment": {
+    "frequency": 6,
+    "score": 6.0,
+    "original": "empowerment",
+    "translated": ""
+  },
+  "organization": {
+    "frequency": 6,
+    "score": 6.0,
+    "original": "organization",
+    "translated": ""
+  },
+  "sectors": {
+    "frequency": 6,
+    "score": 6.0,
+    "original": "sectors",
+    "translated": ""
+  },
+  "international": {
+    "frequency": 6,
+    "score": 6.0,
+    "original": "international",
+    "translated": ""
+  },
+  "relief": {
+    "frequency": 6,
+    "score": 6.0,
+    "original": "relief",
+    "translated": ""
+  },
+  "association": {
+    "frequency": 6,
+    "score": 6.0,
+    "original": "association",
+    "translated": ""
+  },
+  "transparency": {
+    "frequency": 5,
+    "score": 5.0,
+    "original": "transparency",
+    "translated": ""
+  },
+  "100": {
+    "frequency": 5,
+    "score": 5.0,
+    "original": "100",
+    "translated": ""
+  },
+  "hosting": {
+    "frequency": 5,
+    "score": 5.0,
+    "original": "hosting",
+    "translated": ""
+  },
+  "2018": {
+    "frequency": 5,
+    "score": 5.0,
+    "original": "2018",
+    "translated": ""
+  },
+  "2019": {
+    "frequency": 5,
+    "score": 5.0,
+    "original": "2019",
+    "translated": ""
+  },
+  "ash": {
+    "frequency": 5,
+    "score": 5.0,
+    "original": "ash",
+    "translated": ""
+  },
+  "shamayatayn": {
+    "frequency": 5,
+    "score": 5.0,
+    "original": "shamayatayn",
+    "translated": ""
+  },
+  "partnership": {
+    "frequency": 4,
+    "score": 4.0,
+    "original": "partnership",
+    "translated": ""
+  },
+  "sustainable": {
+    "frequency": 4,
+    "score": 4.0,
+    "original": "sustainable",
+    "translated": ""
+  },
+  "community": {
+    "frequency": 4,
+    "score": 4.0,
+    "original": "community",
+    "translated": ""
+  },
+  "floods": {
+    "frequency": 4,
+    "score": 4.0,
+    "original": "floods",
+    "translated": ""
+  },
+  "provision": {
+    "frequency": 4,
+    "score": 4.0,
+    "original": "provision",
+    "translated": ""
+  },
+  "life": {
+    "frequency": 4,
+    "score": 4.0,
+    "original": "life",
+    "translated": ""
+  },
+  "saving": {
+    "frequency": 4,
+    "score": 4.0,
+    "original": "saving",
+    "translated": ""
+  },
+  "mukha": {
+    "frequency": 4,
+    "score": 4.0,
+    "original": "mukha",
+    "translated": ""
+  },
+  "displaced": {
+    "frequency": 4,
+    "score": 4.0,
+    "original": "displaced",
+    "translated": ""
+  },
+  "maqbana": {
+    "frequency": 4,
+    "score": 4.0,
+    "original": "maqbana",
+    "translated": ""
+  },
+  "school": {
+    "frequency": 4,
+    "score": 4.0,
+    "original": "school",
+    "translated": ""
+  },
+  "children": {
+    "frequency": 4,
+    "score": 4.0,
+    "original": "children",
+    "translated": ""
+  },
+  "wadi": {
+    "frequency": 4,
+    "score": 4.0,
+    "original": "wadi",
+    "translated": ""
+  },
+  "houses": {
+    "frequency": 4,
+    "score": 4.0,
+    "original": "houses",
+    "translated": ""
+  },
+  "support": {
+    "frequency": 4,
+    "score": 4.0,
+    "original": "support",
+    "translated": ""
+  },
+  "rental": {
+    "frequency": 4,
+    "score": 4.0,
+    "original": "rental",
+    "translated": ""
+  },
+  "coordination": {
+    "frequency": 4,
+    "score": 4.0,
+    "original": "coordination",
+    "translated": ""
+  },
+  "dengue": {
+    "frequency": 4,
+    "score": 4.0,
+    "original": "dengue",
+    "translated": ""
+  },
+  "covid": {
+    "frequency": 4,
+    "score": 4.0,
+    "original": "covid",
+    "translated": ""
+  },
+  "bena": {
+    "frequency": 4,
+    "score": 4.0,
+    "original": "bena",
+    "translated": ""
+  },
+  "charity": {
+    "frequency": 4,
+    "score": 4.0,
+    "original": "charity",
+    "translated": ""
+  },
+  "human": {
+    "frequency": 4,
+    "score": 4.0,
+    "original": "human",
+    "translated": ""
+  },
+  "works": {
+    "frequency": 4,
+    "score": 4.0,
+    "original": "works",
+    "translated": ""
+  }
+}
